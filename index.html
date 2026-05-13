@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wanderlust — Find Your Next Adventure</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <!-- Leaflet CSS — no token needed, OpenStreetMap tiles -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ══ NAVBAR ══ -->
+<nav class="navbar">
+  <a href="#" class="logo" onclick="showPage('home');return false;"><span class="logo-icon">✦</span>Wanderlust</a>
+  <div class="nav-links">
+    <a href="#" onclick="showPage('home');return false;">Home</a>
+    <a href="#" onclick="showPage('listings');return false;">All Listings</a>
+    <a href="#" onclick="showPage('map');return false;">🗺 Map</a>
+    <a href="#" id="addListingBtn" onclick="requireAuth('newListing');return false;">+ Add Listing</a>
+  </div>
+  <div class="nav-actions">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search destinations…"/>
+      <button onclick="searchListings()">⌕</button>
+    </div>
+    <div class="auth-btns" id="authBtns">
+      <button class="btn-outline" onclick="showPage('login')">Log In</button>
+      <button class="btn-primary" onclick="showPage('signup')">Sign Up</button>
+    </div>
+    <div class="user-menu" id="userMenu" style="display:none">
+      <div class="avatar" id="userAvatar" onclick="toggleDropdown()"></div>
+      <div class="dropdown" id="dropdown">
+        <span id="dropdownName"></span><hr/>
+        <a href="#" onclick="showPage('myListings');return false;">My Listings</a>
+        <a href="#" onclick="logout();return false;">Log Out</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ HOME ══ -->
+<div id="page-home" class="page">
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <p class="hero-tag">✦ Discover the World</p>
+      <h1>Every place<br/><em>tells a story.</em></h1>
+      <p class="hero-sub">Find unique stays, hidden gems and unforgettable adventures curated by real travelers.</p>
+      <div class="hero-btns">
+        <button class="btn-hero" onclick="showPage('listings')">Explore Listings</button>
+        <button class="btn-hero-outline" onclick="showPage('map')">View on Map</button>
+      </div>
+    </div>
+    <div class="hero-cards">
+      <div class="floating-card" style="--d:0s">🏔️ Mountain Retreat<small>₹8,500/night</small></div>
+      <div class="floating-card" style="--d:0.4s">🏖️ Beach Villa<small>₹22,000/night</small></div>
+      <div class="floating-card" style="--d:0.8s">🏯 Historic Castle<small>₹55,000/night</small></div>
+    </div>
+  </section>
+
+  <section class="features-section">
+    <h2 class="section-title">Why Wanderlust?</h2>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feat-icon">🗺️</div><h3>Interactive Maps</h3><p>Explore listings on a live map with clickable pins and geocoding.</p></div>
+      <div class="feature-card"><div class="feat-icon">🔐</div><h3>Secure Accounts</h3><p>Sign up, manage listings, edit or delete with full ownership control.</p></div>
+      <div class="feature-card"><div class="feat-icon">⭐</div><h3>Reviews & Ratings</h3><p>Read and leave authentic reviews to help fellow travelers decide.</p></div>
+      <div class="feature-card"><div class="feat-icon">📸</div><h3>Stunning Imagery</h3><p>Beautiful photos auto-assigned to every listing via Unsplash.</p></div>
+    </div>
+  </section>
+
+  <section class="categories-section">
+    <h2 class="section-title">Browse by Category</h2>
+    <div class="cats-grid" id="homeCats"></div>
+  </section>
+
+  <section class="featured-section">
+    <h2 class="section-title">Featured Stays</h2>
+    <div class="cards-grid" id="featuredCards"></div>
+    <div style="text-align:center;margin-top:2rem;padding-bottom:4rem">
+      <button class="btn-primary" onclick="showPage('listings')">View All Listings →</button>
+    </div>
+  </section>
+</div>
+
+<!-- ══ LISTINGS ══ -->
+<div id="page-listings" class="page">
+  <div class="listings-header">
+    <h1>All Listings</h1>
+    <button class="btn-primary" onclick="requireAuth('newListing')">+ Add New Listing</button>
+  </div>
+  <div class="filter-bar"><div class="cats-scroll" id="listingCats"></div></div>
+  <div class="cards-grid" id="allCards"></div>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <div class="empty-icon">🌍</div>
+    <p>No listings found.</p>
+    <button class="btn-primary" onclick="requireAuth('newListing')">Add the first one!</button>
+  </div>
+</div>
+
+<!-- ══ MAP ══ -->
+<div id="page-map" class="page">
+  <div class="map-page-header">
+    <h1>Explore on Map</h1>
+    <p>Click any pin to view listing details</p>
+  </div>
+  <div style="padding:0 2rem 4rem;max-width:1300px;margin:0 auto">
+    <div id="mainMap" class="map-container"></div>
+  </div>
+</div>
+
+<!-- ══ LOGIN ══ -->
+<div id="page-login" class="page auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">✦ Wanderlust</div>
+    <h2>Welcome back</h2>
+    <p class="auth-sub">Log in to manage your listings</p>
+    <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com"/></div>
+    <div class="form-group"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"/></div>
+    <div class="error-msg" id="loginError"></div>
+    <button class="btn-primary full-width" onclick="login()">Log In</button>
+    <p class="auth-switch">Don't have an account? <a href="#" onclick="showPage('signup');return false;">Sign up</a></p>
+  </div>
+</div>
+
+<!-- ══ SIGNUP ══ -->
+<div id="page-signup" class="page auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">✦ Wanderlust</div>
+    <h2>Create account</h2>
+    <p class="auth-sub">Join the community of travelers</p>
+    <div class="form-group"><label>Full Name</label><input type="text" id="signupName" placeholder="Your name"/></div>
+    <div class="form-group"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com"/></div>
+    <div class="form-group"><label>Password</label><input type="password" id="signupPass" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')signup()"/></div>
+    <div class="error-msg" id="signupError"></div>
+    <button class="btn-primary full-width" onclick="signup()">Create Account</button>
+    <p class="auth-switch">Already have an account? <a href="#" onclick="showPage('login');return false;">Log in</a></p>
+  </div>
+</div>
+
+<!-- ══ ADD/EDIT LISTING ══ -->
+<div id="page-newListing" class="page">
+  <div class="form-page">
+    <h1 id="listingFormTitle">Add New Listing</h1>
+    <p class="form-sub">Share your amazing place with travelers worldwide</p>
+    <div class="listing-form">
+      <input type="hidden" id="editListingId"/>
+      <div class="form-row">
+        <div class="form-group"><label>Listing Title *</label><input type="text" id="fTitle" placeholder="e.g. Cozy Mountain Cabin"/></div>
+        <div class="form-group"><label>Category</label>
+          <select id="fCategory">
+            <option>Rooms</option><option>Camping</option><option>Beach</option>
+            <option>Lakefront</option><option>Farms</option><option>Cabins</option>
+            <option>Castles</option><option>Countryside</option><option>Tents</option>
+            <option>Boats</option><option>Arctic</option>
+            <option>Amazing Pools</option><option>Amazing Views</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Description *</label><textarea id="fDesc" rows="4" placeholder="Describe your place…"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Price per Night (₹) *</label><input type="number" id="fPrice" placeholder="e.g. 5000" min="1"/></div>
+        <div class="form-group"><label>Location *</label><input type="text" id="fLocation" placeholder="e.g. Manali, Himachal Pradesh" oninput="geocodeLocation()"/></div>
+      </div>
+      <div class="form-group"><label>Country</label><input type="text" id="fCountry" placeholder="e.g. India"/></div>
+      <div class="form-group">
+        <label>Image URL <span style="color:var(--text3)">(optional — auto-assigned if blank)</span></label>
+        <input type="text" id="fImage" placeholder="https://…"/>
+      </div>
+      <div class="form-group">
+        <label>Pin Location on Map</label>
+        <div class="map-container" id="pinMap"></div>
+        <p class="hint">💡 Type a location to auto-fly the map, or click anywhere to drop a pin</p>
+        <input type="hidden" id="fLng"/>
+        <input type="hidden" id="fLat"/>
+      </div>
+      <div class="error-msg" id="listingError"></div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        <button class="btn-primary" onclick="saveListing()">💾 Save Listing</button>
+        <button class="btn-outline" onclick="showPage('listings')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DETAIL ══ -->
+<div id="page-detail" class="page">
+  <div id="detailContent"></div>
+</div>
+
+<!-- ══ MY LISTINGS ══ -->
+<div id="page-myListings" class="page">
+  <div class="listings-header">
+    <h1>My Listings</h1>
+    <button class="btn-primary" onclick="requireAuth('newListing')">+ Add New</button>
+  </div>
+  <div class="cards-grid" id="myCards"></div>
+  <div class="empty-state" id="myEmptyState" style="display:none">
+    <div class="empty-icon">🏠</div>
+    <p>You haven't added any listings yet.</p>
+    <button class="btn-primary" onclick="requireAuth('newListing')">Add one!</button>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══ DELETE MODAL ══ -->
+<div class="modal-overlay" id="deleteModal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-icon">🗑️</div>
+    <h3>Delete Listing?</h3>
+    <p>This action cannot be undone. The listing will be permanently removed.</p>
+    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem">
+      <button class="btn-outline" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn-danger" id="confirmDeleteBtn">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">✦ Wanderlust</div>
+    <p>© 2025 Wanderlust. Find your next adventure.</p>
+    <div class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Help</a></div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
